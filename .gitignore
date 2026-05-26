@@ -1,0 +1,6 @@
+localtest
+**/Chart.lock
+charts/*/charts
+.vscode
+venv
+.venv
