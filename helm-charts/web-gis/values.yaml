@@ -787,60 +787,6 @@ redis:
       cpu: "200m"
 
 postgres:
-  # -- type of used postgres: "operator" or "external". \
-  # if external is used, host, port and password have to be set in postgres.external using values or external secret
-  # if operator is used, host port and passwords get set automatically using postgres-operator. If your Kubernetes cluster
-  # does not have a running postgres-operator, you can install the postgres-operator with  postgres-operator.enabled = true
-  # type: operator
-  # username: postgres
-  # schema: public
-  # geonode_databasename_and_username: geonode
-  # geodata_databasename_and_username: geodata
-  # # configuration for postgres operator database manifest (https://github.com/zalando/postgres-operator/blob/master/docs/reference/cluster_manifest.md)
-  # operator:
-  #   # -- pod name for postgres containers == teamID for mainifest
-  #   pod_name: postgresql
-  #   # -- Database storage size
-  #   storageSize: 3Gi
-  #   # -- postgress pv storageclass
-  #   storageClass:
-  #   # -- number of database instances
-  #   numberOfInstances: 1
-  #   # -- postgres version
-  #   postgres_version: 15
-  #   # -- boolean flag to override the operator defaults (set by the enable_master_load_balancer parameter) to define whether to enable the load balancer pointing to the Postgres primary. Optional.
-  #   enableMasterLoadBalancer:
-  #   # -- when one or more load balancers are enabled for the cluster, this parameter defines the comma-separated range of IP networks (in CIDR-notation).
-  #   # The corresponding load balancer is accessible only to the networks defined by this parameter.
-  #   # Optional, when empty the load balancer service becomes inaccessible from outside of the Kubernetes cluster.
-  #   allowedSourceRanges: []
-  #   # -- a dictionary of environment variables. Use usual Kubernetes definition (https://kubernetes.io/docs/tasks/inject-data-application/environment-variable-expose-pod-information/)
-  #   # for environment variables. Optional.
-  #   env: []
-  #   # -- additional annotation for postgresql object
-  #   annotations: {}
-  #   # -- patroni related configuration (https://patroni.readthedocs.io/en/master/patroni_configuration.html)
-  #   patroni: {}
-  #   # -- postgres parameters resources
-  #   parameters:
-  #     max_connections: "20"
-  #     shared_buffers: 250MB
-  #     work_mem: 12.5Mb
-  #   # --
-  #   clone: {}
-  #   # -- Those parameters define CPU and memory requests and limits for the Postgres container. They are grouped under the resources top-level key with subgroups requests and limits
-  #   resources:
-  #     requests:
-  #       # -- requested memory as in resource.requests.memory (https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/)
-  #       memory: "0.5Gi"
-  #       # -- requested cpu as in resource.requests.cpu (https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/)
-  #       cpu: "100m"
-  #     limits:
-  #       # -- limits memory as in resource.limits.memory (https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/)
-  #       memory: "1Gi"
-  #       # -- limit cpu as in resource.requests.cpu (https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/)
-  #       cpu: "400m"
-
   type: external  # Keep as "external" to indicate CNPG cluster managed by this chart
   
   # Helm chart dependency config (already exists, keep as-is)
@@ -848,90 +794,89 @@ postgres:
   #   enabled: false
   
   # NEW: CNPG Cluster specification
-  cnpg:
-    enabled: true
-    clusterName: cluster-pg
-    imageName: ghcr.io/cloudnative-pg/postgis:15
-    instances: 3
-    # Storage configuration
-    storage:
-      size: 10Gi
-      storageClass: longhorn
-    # Resource limits for CNPG nodes
-    resources:
-      requests:
-        cpu: 250m
-        memory: 512Mi
-      limits:
-        cpu: 1000m
-        memory: 1Gi
-    # Backup configuration (optional, for future)
-    backup:
-      enabled: false
-    # Bootstrap configuration
-    bootstrap:
-      initdb:
-        database: postgres
-        owner: postgres
-        # Secret for app user password (optional, if not using passwordRef)
-        # secret:
-        #   name: cluster-pg-app-secret
-        # SQL scripts to run during initialization
-        scripts:
-          # PostGIS extension
-          - name: init-postgis
-            database: postgres
-            owner: postgres
-            content: |
-              -- Enable PostGIS extensions
-              CREATE EXTENSION IF NOT EXISTS postgis;
-              CREATE EXTENSION IF NOT EXISTS postgis_topology;
-              CREATE EXTENSION IF NOT EXISTS postgres_fdw;
-          # Geonode application database and user
-          - name: init-geonode
-            database: postgres
-            owner: postgres
-            content: |
-              -- Create geonode application user and database
-              CREATE USER {{ .Values.database.geonode.user }} WITH PASSWORD '{{ .Values.database.geonode.password }}';
-              CREATE DATABASE {{ .Values.database.geonode.database }} OWNER {{ .Values.database.geonode.user }};
-              GRANT ALL PRIVILEGES ON DATABASE {{ .Values.database.geonode.database }} TO {{ .Values.database.geonode.user }};
-              -- Connect to geonode database and enable PostGIS
-              \c {{ .Values.database.geonode.database }}
-              CREATE EXTENSION IF NOT EXISTS postgis;
-              CREATE EXTENSION IF NOT EXISTS postgis_topology;
-          # Geodata (optional secondary database)
-          - name: init-geodata
-            database: postgres
-            owner: postgres
-            content: |
-              -- Create geodata application user and database (for multi-tenant scenarios)
-              CREATE USER {{ .Values.database.geodata.user }} WITH PASSWORD '{{ .Values.database.geodata.password }}';
-              CREATE DATABASE {{ .Values.database.geodata.database }} OWNER {{ .Values.database.geodata.user }};
-              GRANT ALL PRIVILEGES ON DATABASE {{ .Values.database.geodata.database }} TO {{ .Values.database.geodata.user }};
-              \c {{ .Values.database.geodata.database }}
-              CREATE EXTENSION IF NOT EXISTS postgis;
-              CREATE EXTENSION IF NOT EXISTS postgis_topology;
+  # cnpg:
+  #   enabled: true
+  #   clusterName: cluster-pg
+  #   imageName: ghcr.io/cloudnative-pg/postgis:15
+  #   instances: 3
+  #   # Storage configuration
+  #   storage:
+  #     size: 10Gi
+  #     storageClass: longhorn
+  #   # Resource limits for CNPG nodes
+  #   resources:
+  #     requests:
+  #       cpu: 250m
+  #       memory: 512Mi
+  #     limits:
+  #       cpu: 1000m
+  #       memory: 1Gi
+  #   # Backup configuration (optional, for future)
+  #   backup:
+  #     enabled: false
+  #   # Bootstrap configuration
+  #   bootstrap:
+  #     initdb:
+  #       database: postgres
+  #       owner: postgres
+  #       # Secret for app user password (optional, if not using passwordRef)
+  #       # secret:
+  #       #   name: cluster-pg-app-secret
+  #       # SQL scripts to run during initialization
+  #       scripts:
+  #         # PostGIS extension
+  #         - name: init-postgis
+  #           database: postgres
+  #           owner: postgres
+  #           content: |
+  #             -- Enable PostGIS extensions
+  #             CREATE EXTENSION IF NOT EXISTS postgis;
+  #             CREATE EXTENSION IF NOT EXISTS postgis_topology;
+  #             CREATE EXTENSION IF NOT EXISTS postgres_fdw;
+  #         # Geonode application database and user
+  #         - name: init-geonode
+  #           database: postgres
+  #           owner: postgres
+  #           content: |
+  #             -- Create geonode application user and database
+  #             CREATE USER {{ .Values.database.geonode.user }} WITH PASSWORD '{{ .Values.database.geonode.password }}';
+  #             CREATE DATABASE {{ .Values.database.geonode.database }} OWNER {{ .Values.database.geonode.user }};
+  #             GRANT ALL PRIVILEGES ON DATABASE {{ .Values.database.geonode.database }} TO {{ .Values.database.geonode.user }};
+  #             -- Connect to geonode database and enable PostGIS
+  #             \c {{ .Values.database.geonode.database }}
+  #             CREATE EXTENSION IF NOT EXISTS postgis;
+  #             CREATE EXTENSION IF NOT EXISTS postgis_topology;
+  #         # Geodata (optional secondary database)
+  #         - name: init-geodata
+  #           database: postgres
+  #           owner: postgres
+  #           content: |
+  #             -- Create geodata application user and database (for multi-tenant scenarios)
+  #             CREATE USER {{ .Values.database.geodata.user }} WITH PASSWORD '{{ .Values.database.geodata.password }}';
+  #             CREATE DATABASE {{ .Values.database.geodata.database }} OWNER {{ .Values.database.geodata.user }};
+  #             GRANT ALL PRIVILEGES ON DATABASE {{ .Values.database.geodata.database }} TO {{ .Values.database.geodata.user }};
+  #             \c {{ .Values.database.geodata.database }}
+  #             CREATE EXTENSION IF NOT EXISTS postgis;
+  #             CREATE EXTENSION IF NOT EXISTS postgis_topology;
 
-  # External connection (for when CNPG cluster is external)
-  external:
-    hostname: cluster-pg-rw
-    port: 5432
-    ssl: prefer
-    secret:
-      # Use existing secret pattern: NO PLAINTEXT PASSWORDS IN THIS FILE
-      existingSecretName: ""  # Set to use existing K8s secret
-      # If no existing secret, chart creates one with keys below (dev/test only):
-      postgres_password: "postgres"
-      geonode_password: "geonode"
-      geodata_password: "geogeonode"
+  # # External connection (for when CNPG cluster is external)
+  # external:
+  #   hostname: cluster-pg-rw
+  #   port: 5432
+  #   ssl: prefer
+  #   secret:
+  #     # Use existing secret pattern: NO PLAINTEXT PASSWORDS IN THIS FILE
+  #     existingSecretName: ""  # Set to use existing K8s secret
+  #     # If no existing secret, chart creates one with keys below (dev/test only):
+  #     postgres_password: "postgres"
+  #     geonode_password: "geonode"
+  #     geodata_password: "geogeonode"
 
-
-  tolerations:
-    - key: "cluster"
-      operator: "Equal"
-      value: "rheticuset_cluster"
-      effect: "NoSchedule"
+  # tolerations:
+  #   - key: "cluster"
+  #     operator: "Equal"
+  #     value: "rheticuset_cluster"
+  #     effect: "NoSchedule"
   # external:
   #   hostname: my-external-postgres.com
   #   port: 5432

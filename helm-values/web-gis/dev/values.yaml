@@ -1,5 +1,103 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# VALUES (With Secured Reference Strings)
+# ═══════════════════════════════════════════════════════════════════════════
+
 global:
   storageClass: longhorn
+  tolerations:
+    - key: "cluster"
+      operator: "Equal"
+      value: "rheticuset_cluster"
+      effect: "NoSchedule"
+
+# ═══════════════════════════════════════════════════════════════════════════
+# POSTGRES & CNPG CONFIGURATION (Merged into a single block)
+# ═══════════════════════════════════════════════════════════════════════════
+postgres:
+  enabled: true
+  type: external  # Keep as "external" to indicate CNPG cluster managed by this chart
+  username: app
+  geonode_databasename_and_username: geonode
+  geodata_databasename_and_username: geodata
+
+postgres:
+  enabled: true
+  type: external  # Tells the chart we are supplying or building an external-style CNPG block
+  
+  cnpg:
+    enabled: true
+    clusterName: cluster-pg
+    imageName: ghcr.io/cloudnative-pg/postgis:15
+    instances: 3
+    storage:
+      size: 10Gi
+      storageClass: longhorn
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+    backup:
+      enabled: false
+
+  bootstrap:
+    initdb:
+      database: app   # This creates the default 'app' user/db
+      owner: app
+      scripts:
+        - name: 01-init-roles-and-dbs
+          database: postgres
+          owner: postgres
+          content: |
+            -- Create dedicated users
+            CREATE USER geonode WITH PASSWORD 'geonode-secret' CREATEDB LOGIN;
+            CREATE USER geodata WITH PASSWORD 'geodata-secret' CREATEDB LOGIN;
+            
+            -- Create the two required databases
+            CREATE DATABASE geonode OWNER geonode;
+            CREATE DATABASE geodata OWNER geodata;
+            
+            -- Grant privileges to the default app user
+            GRANT ALL PRIVILEGES ON DATABASE geonode TO app;
+            GRANT ALL PRIVILEGES ON DATABASE geodata TO app;
+
+        - name: 02-setup-geonode-extensions
+          database: geonode
+          owner: postgres
+          content: |
+            CREATE EXTENSION IF NOT EXISTS postgis;
+            CREATE EXTENSION IF NOT EXISTS postgis_topology;
+            GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO geonode;
+            GRANT ALL ON SCHEMA public TO geonode;
+            GRANT ALL ON SCHEMA public TO app;
+
+        - name: 03-setup-geodata-extensions
+          database: geodata
+          owner: postgres
+          content: |
+            CREATE EXTENSION IF NOT EXISTS postgis;
+            CREATE EXTENSION IF NOT EXISTS postgis_topology;
+            GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO geodata;
+            GRANT ALL ON SCHEMA public TO geodata;
+            GRANT ALL ON SCHEMA public TO app;
+
+  # External endpoints config
+  external:
+    hostname: cluster-pg-rw
+    port: 5432
+    ssl: prefer
+
+  # KEEPING VAULT REFERENCES
+  secret:
+    postgres-password: "rheticus_electric_tower/data/postgres#password"
+  geonode: 
+    secret: 
+      geonode-password: "rheticus_electric_tower/data/geonode#password"
+  geodata: 
+    secret: 
+      geodata-password: "rheticus_electric_tower/data/geodata#password"
 
   tolerations:
     - key: "cluster"
@@ -9,10 +107,8 @@ global:
 
 geonode:
   replicaCount: 1
-
   persistant:
     storageSize: 2Gi
-
   general:
     debug: True
     debug_static: True
@@ -30,16 +126,16 @@ geonode:
   ingress:
     enabled: False  
   
+  # KEEPING VAULT REFERENCES (Quoted to protect the '#' character)
   secret:
     existingSecretName: "geonode-secret"
     data: 
-      username: rheticus_electric_tower/data/geonode#username
-      password: rheticus_electric_tower/data/geonode#password
-      email: rheticus_electric_tower/data/geonode#email
+      username: "rheticus_electric_tower/data/geonode#username"
+      password: "rheticus_electric_tower/data/geonode#password"
+      email: "rheticus_electric_tower/data/geonode#email"
 
   mail:
     enabled: False
-
   ldap:
     enabled: False
 
@@ -48,14 +144,12 @@ geonode:
     email_verification: "False"
     authentication_method: username_email
  
-  # HEALTHCHECKS
   startupProbe:
     httpGet:
       path: /
-      port: http-monitor    # port 8001 (uwsgi stats)
-    failureThreshold: 30    # 30 × 10s = 5 min max startup
+      port: http-monitor
+    failureThreshold: 30
     periodSeconds: 10
-
   livenessProbe:
     httpGet:
       path: /
@@ -64,7 +158,6 @@ geonode:
     periodSeconds: 30     
     timeoutSeconds: 10
     failureThreshold: 3
-
   readinessProbe:
     httpGet:
       path: /
@@ -80,18 +173,19 @@ geoserver:
       memory: "1Gi"
       cpu: "500m"
     limits:
-      memory: "3Gi"      # GeoServer's JVM needs headroom; keep Xmx aligned
+      memory: "3Gi"
       cpu: "2000m"
   
+  # KEEPING VAULT REFERENCES
   secret: 
     existingSecretName: "geoserver-secret"
     data: 
-      GEOSERVER_ADMIN_USER: rheticus_electric_tower/data/geoserver#GEOSERVER_ADMIN_USER
-      GEOSERVER_ADMIN_PASSWORD: rheticus_electric_tower/data/geoserver#GEOSERVER_ADMIN_PASSWORD
-      GEOSERVER_FACTORY_PASSWORD: rheticus_electric_tower/data/geoserver#GEOSERVER_FACTORY_PASSWORD
-      OAUTH2_API_KEY: rheticus_electric_tower/data/geoserver#OAUTH2_API_KEY
-      OAUTH2_CLIENT_ID: rheticus_electric_tower/data/geoserver#OAUTH2_CLIENT_ID
-      OAUTH2_CLIENT_SECRET: rheticus_electric_tower/data/geoserver#OAUTH2_CLIENT_SECRET
+      GEOSERVER_ADMIN_USER: "rheticus_electric_tower/data/geoserver#GEOSERVER_ADMIN_USER"
+      GEOSERVER_ADMIN_PASSWORD: "rheticus_electric_tower/data/geoserver#GEOSERVER_ADMIN_PASSWORD"
+      GEOSERVER_FACTORY_PASSWORD: "rheticus_electric_tower/data/geoserver#GEOSERVER_FACTORY_PASSWORD"
+      OAUTH2_API_KEY: "rheticus_electric_tower/data/geoserver#OAUTH2_API_KEY"
+      OAUTH2_CLIENT_ID: "rheticus_electric_tower/data/geoserver#OAUTH2_CLIENT_ID"
+      OAUTH2_CLIENT_SECRET: "rheticus_electric_tower/data/geoserver#OAUTH2_CLIENT_SECRET"
 
   tolerations:
     - key: "cluster"
@@ -164,24 +258,22 @@ pycsw:
       memory: "2Gi"
       cpu: "500m"
   
-  # HEALTHCHECKS
   readinessProbe:
     httpGet:
       path: /
       port: 8000
-    initialDelaySeconds: 15   # give workers time to fork
+    initialDelaySeconds: 15
     periodSeconds: 10
-    timeoutSeconds: 10        # was 5
+    timeoutSeconds: 10
     failureThreshold: 3
-
   livenessProbe:
     httpGet:
       path: /
       port: 8000
-    initialDelaySeconds: 30      # allow time for startup
-    timeoutSeconds: 10           # tolerate slow responses
+    initialDelaySeconds: 30
+    timeoutSeconds: 10
     periodSeconds: 15
-    failureThreshold: 5          # more tolerance for GC pauses
+    failureThreshold: 5
   
   tolerations:
     - key: "cluster"
@@ -189,40 +281,41 @@ pycsw:
       value: "rheticuset_cluster"
       effect: "NoSchedule"
 
-# -- Disable the bundled Zalando operator entirely
 postgres-operator:
   enabled: False
 
-# -- Point to your CNPG cluster
-postgres:
-  cnpg: 
-    clusterName: cluster-pg
-  type: external
-  username: app # match CNPG's app user
-  geonode_databasename_and_username: geonode
-  geodata_databasename_and_username: geodata
+# postgres:
+#   enabled: true
+#   cnpg: 
+#     clusterName: cluster-pg
+#   type: external
+#   username: app
+#   geonode_databasename_and_username: geonode
+#   geodata_databasename_and_username: geodata
+#   bootstrap: 
+#     initdb: 
+#       database: app 
+#       owner: app
+#   external:
+#     hostname: cluster-pg-rw
+#     port: 5432
+#     ssl: prefer
 
-  bootstrap: 
-    initdb: 
-      database: app 
-      owner: app
-  external:
-    hostname: cluster-pg-rw
-    port: 5432
-    ssl: prefer
-  secret:
-    postgres-password: rheticus_electric_tower/data/postgres#password
-  geonode: 
-    secret: 
-      geonode-password: rheticus_electric_tower/data/geonode#password
-  geodata: 
-    secret: 
-      geodata-password: rheticus_electric_tower/data/geodata#password
-  # tolerations:
-  #   - key: "cluster"
-  #     operator: "Equal"
-  #     value: "rheticuset_cluster"
-  #     effect: "NoSchedule"
+#   # KEEPING VAULT REFERENCES
+#   secret:
+#     postgres-password: "rheticus_electric_tower/data/postgres#password"
+#   geonode: 
+#     secret: 
+#       geonode-password: "rheticus_electric_tower/data/geonode#password"
+#   geodata: 
+#     secret: 
+#       geodata-password: "rheticus_electric_tower/data/geodata#password"
+
+#   tolerations:
+#     - key: "cluster"
+#       operator: "Equal"
+#       value: "rheticuset_cluster"
+#       effect: "NoSchedule"
 
 rabbitmq:
   requests:
@@ -250,13 +343,19 @@ memcached:
       memory: "128Mi"
       cpu: "100m"
   config:
-    memoryLimit: 96        # keep under the container limit (in MB)
+    memoryLimit: 96
   tolerations:
     - key: "cluster"
       operator: "Equal"
       value: "rheticuset_cluster"
       effect: "NoSchedule"
       
+redis:
+  enabled: false 
+
+# ═══════════════════════════════════════════════════════════════════════════
+# VAULT CONFIGURATION BLOCK
+# ═══════════════════════════════════════════════════════════════════════════
 vault: 
   secretStoreName: rhet-secret-store
   path: rheticus_electric_tower
@@ -265,6 +364,3 @@ vault:
   vaultRole: rheticus-electric-tower
   serviceAccount: vault-rheticus-electric-tower
   server: http://hashicorp-vault-planetek-dev.planetek-hashicorp-vault.svc.cluster.local:8200
-
-redis:
-  enabled: false 
