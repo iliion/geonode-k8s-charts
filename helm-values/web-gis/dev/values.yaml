@@ -83,13 +83,24 @@ postgres:
             GRANT ALL ON SCHEMA public TO geodata;
             GRANT ALL ON SCHEMA public TO app;
 
-  # External endpoints config
+  # External connection (for when CNPG cluster is external)
   external:
     hostname: cluster-pg-rw
     port: 5432
     ssl: prefer
+    secret:
+      existingSecretName: ""  # Keeps your working template pattern intact
+      postgres_password: "rheticus_electric_tower/data/postgres#password"
+      geonode_password: "rheticus_electric_tower/data/geonode#password"
+      geodata_password: "rheticus_electric_tower/data/geodata#password"
 
-  # KEEPING VAULT REFERENCES
+  # External endpoints config
+  # external:
+  #   hostname: cluster-pg-rw
+  #   port: 5432
+  #   ssl: prefer
+
+  # # KEEPING VAULT REFERENCES
   secret:
     postgres-password: "rheticus_electric_tower/data/postgres#password"
   geonode: 
