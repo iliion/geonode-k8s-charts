@@ -1,0 +1,78 @@
+{{- if .Values.postgres.cnpg.enabled }}
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ .Values.postgres.cnpg.clusterName }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    # app.kubernetes.io/name: postgresql
+    # app.kubernetes.io/part-of: geonode-k8s
+    # app: geonode
+    # environment: production
+    cluster: rheticuset_cluster
+spec:
+  # Image with PostGIS
+  imageName: {{ .Values.postgres.cnpg.imageName }}
+
+  # Number of instances (replicas)
+  instances: {{ .Values.postgres.cnpg.instances }}
+
+  # Primary update strategy
+  primaryUpdateStrategy: unsupervised
+  
+  postgresql:
+    parameters:
+      # Memory allocation
+      max_connections: {{ .Values.postgres.cnpg.postgresql.parameters.max_connections | default "100" }}
+      shared_buffers: {{ .Values.postgres.cnpg.postgresql.parameters.shared_buffers | default "128MB" }}
+      work_mem: {{ .Values.postgres.cnpg.postgresql.parameters.work_mem | default "4MB" }}
+      maintenance_work_mem: {{ .Values.postgres.cnpg.postgresql.parameters.maintenance_work_mem | default "64MB" }}
+      # Logging
+      log_statement: {{ .Values.postgres.cnpg.postgresql.parameters.log_statement | default "mod" }}          # Log DDL and DML statements
+      log_duration: {{ .Values.postgres.cnpg.postgresql.parameters.log_duration | default "on" }}            # Log statement duration
+      log_min_duration_statement: {{ .Values.postgres.cnpg.postgresql.parameters.log_min_duration_statement | default "1000" }}  # Log slow queries (>1sec)
+
+      # Vacuum settings
+      autovacuum: {{ .Values.postgres.cnpg.postgresql.parameters.autovacuum | default "on" }}
+      autovacuum_max_workers: {{ .Values.postgres.cnpg.postgresql.parameters.autovacuum_max_workers | default "3" }}
+
+      # Inject custom logging and autovacuum values passed through values.yaml
+      {{- if .Values.postgres.cnpg.postgresql }}
+      {{- toYaml .Values.postgres.cnpg.postgresql.parameters | nindent 6 }}
+      {{- end }}
+
+  # Storage configuration
+  storage:
+    size: {{ .Values.postgres.cnpg.storage.size }}
+    storageClass: {{ .Values.postgres.cnpg.storage.storageClass | default .Values.global.storageClass }}
+
+  # Resources
+  resources:
+    requests:
+      cpu: {{ .Values.postgres.cnpg.resources.requests.cpu }}
+      memory: {{ .Values.postgres.cnpg.resources.requests.memory }}
+    limits:
+      cpu: {{ .Values.postgres.cnpg.resources.limits.cpu }}
+      memory: {{ .Values.postgres.cnpg.resources.limits.memory }}
+
+  # Affinity and tolerations
+  affinity:
+    tolerations: {{ toYaml .Values.global.tolerations | nindent 6 }}
+
+# Bootstrap database initialization
+  bootstrap:
+    initdb:
+      database: {{ .Values.postgres.bootstrap.initdb.database }}
+      owner: {{ .Values.postgres.bootstrap.initdb.owner }}
+      # {{- if .Values.postgres.bootstrap.initdb.postInitTemplateSQL }}
+      # postInitTemplateSQL:
+      # {{- toYaml .Values.postgres.bootstrap.initdb.postInitTemplateSQL | nindent 8 }}
+      # {{- end }}
+
+  monitoring: 
+    customQueriesConfigMap: 
+      - key: queries  
+        name: cnpg-default-monitoring 
+    disableDefaultQueries: false  
+    enablePodMonitor: false
+{{- end }}

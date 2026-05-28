@@ -23,7 +23,6 @@ Helm Chart for Geonode. Supported versions:
 
 | Repository | Name | Version |
 |------------|------|---------|
-| https://opensource.zalando.com/postgres-operator/charts/postgres-operator | postgres-operator | ~1.12.0 |
 | oci://registry-1.docker.io/cloudpirates | memcached | 0.9.6 |
 | oci://registry-1.docker.io/cloudpirates | rabbitmq | 0.2.12 |
 | oci://registry-1.docker.io/cloudpirates | redis | 0.19.0 |
@@ -197,10 +196,6 @@ Helm Chart for Geonode. Supported versions:
 | nginx.resources.limits.memory | string | `"1Gi"` | limits memory as in resource.limits.memory (https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) |
 | nginx.resources.requests.cpu | string | `"500m"` | requested cpu as in resource.requests.cpu (https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) |
 | nginx.resources.requests.memory | string | `"1Gi"` | requested memory as in resource.requests.memory (https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) |
-| postgres-operator.configLoggingRestApi.api_port | int | `8080` | REST API listener listens to this port |
-| postgres-operator.enabled | bool | `false` | enable postgres-operator (this or postgresql.enabled NOT both ) |
-| postgres-operator.operatorApiUrl | string | `"http://{{ .Release.Name }}-postgres-operator:8080"` | ??? |
-| postgres-operator.podServiceAccount | object | `{"name":""}` | not setting the podServiceAccount name will leed to generation of this name. This allows to run multiple postgres-operators in a single kubernetes cluster. just seperating them by namespace. |
 | postgres.external.hostname | string | `"my-external-postgres.com"` |  |
 | postgres.external.port | int | `5432` |  |
 | postgres.external.secret.existingSecretName | string | `""` | name of an existing Secret to use. Set, if you want to separately maintain the Secret. |
@@ -210,25 +205,7 @@ Helm Chart for Geonode. Supported versions:
 | postgres.external.ssl | string | `"prefer"` |  |
 | postgres.geodata_databasename_and_username | string | `"geodata"` | geoserver database name and username |
 | postgres.geonode_databasename_and_username | string | `"geonode"` | geonode database name and username |
-| postgres.operator.allowedSourceRanges | list | `[]` | when one or more load balancers are enabled for the cluster, this parameter defines the comma-separated range of IP networks (in CIDR-notation). The corresponding load balancer is accessible only to the networks defined by this parameter. Optional, when empty the load balancer service becomes inaccessible from outside of the Kubernetes cluster. |
-| postgres.operator.annotations | object | `{}` | additional annotation for postgresql object |
-| postgres.operator.clone | object | `{}` |  |
-| postgres.operator.enableMasterLoadBalancer | string | `nil` | boolean flag to override the operator defaults (set by the enable_master_load_balancer parameter) to define whether to enable the load balancer pointing to the Postgres primary. Optional. |
-| postgres.operator.env | list | `[]` | a dictionary of environment variables. Use usual Kubernetes definition (https://kubernetes.io/docs/tasks/inject-data-application/environment-variable-expose-pod-information/) for environment variables. Optional. |
-| postgres.operator.numberOfInstances | int | `1` | number of database instances |
-| postgres.operator.parameters | object | `{"max_connections":"20","shared_buffers":"250MB","work_mem":"12.5Mb"}` | postgres parameters resources |
-| postgres.operator.patroni | object | `{}` | patroni related configuration (https://patroni.readthedocs.io/en/master/patroni_configuration.html) |
-| postgres.operator.pod_name | string | `"postgresql"` | pod name for postgres containers == teamID for mainifest |
-| postgres.operator.postgres_version | int | `15` | postgres version |
-| postgres.operator.resources | object | `{"limits":{"cpu":"400m","memory":"1Gi"},"requests":{"cpu":"100m","memory":"0.5Gi"}}` | Those parameters define CPU and memory requests and limits for the Postgres container. They are grouped under the resources top-level key with subgroups requests and limits |
-| postgres.operator.resources.limits.cpu | string | `"400m"` | limit cpu as in resource.requests.cpu (https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) |
-| postgres.operator.resources.limits.memory | string | `"1Gi"` | limits memory as in resource.limits.memory (https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) |
-| postgres.operator.resources.requests.cpu | string | `"100m"` | requested cpu as in resource.requests.cpu (https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) |
-| postgres.operator.resources.requests.memory | string | `"0.5Gi"` | requested memory as in resource.requests.memory (https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) |
-| postgres.operator.storageClass | string | `nil` | postgress pv storageclass |
-| postgres.operator.storageSize | string | `"3Gi"` | Database storage size |
 | postgres.schema | string | `"public"` | database schema |
-| postgres.type | string | `"operator"` | type of used postgres: "operator" or "external". \ if external is used, host, port and password have to be set in postgres.external using values or external secret if operator is used, host port and passwords get set automatically using postgres-operator. If your Kubernetes cluster does not have a running postgres-operator, you can install the postgres-operator with  postgres-operator.enabled = true |
 | postgres.username | string | `"postgres"` | postgres username |
 | pycsw.config | string | based of pycsw example.cfg: https://github.com/geopython/pycsw/blob/master/docker/pycsw.cfg | pycsw config file parameters, see docs: https://docs.pycsw.org/_/downloads/en/latest/pdf/ |
 | pycsw.container_name | string | `"pycsw"` | pycsw container name |
