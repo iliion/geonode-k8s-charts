@@ -2,7 +2,7 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: "geonode-geoserver"
+  name: "{{ include "geoserver_pod_name" . }}"
   namespace: {{ .Release.Namespace }}
 spec:
   selector:
@@ -19,7 +19,6 @@ spec:
         checksum/geoserver-secret: {{ include (print $.Template.BasePath "/geoserver/geoserver-secret.yaml") . | sha256sum }}
 
     spec:
-      tolerations: {{ toYaml .Values.global.tolerations | nindent 7 }}
       terminationGracePeriodSeconds: 3
       initContainers:
       - name: {{ .Values.geoserver_data.container_name }}
@@ -56,7 +55,12 @@ spec:
 {{- if not (empty .Values.geoserver.imagePullSecret) }}
       imagePullSecrets:
       - name: {{ .Values.geoserver.imagePullSecret }}
-{{ end }}
+      {{- end }}
+
+      {{- with .Values.geoserver.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
 
       containers:
       - name: {{ .Values.geoserver.container_name }}

@@ -26,6 +26,11 @@ spec:
       - name: {{ .Values.pycsw.imagePullSecret }}
 {{ end }}
 
+      {{- with .Values.postgres.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
       initContainers:
       # Wait for GeoNode to be up and running, else there can be a race conddition where pycsw creates the database table,
       # and lets crash init process of geonode

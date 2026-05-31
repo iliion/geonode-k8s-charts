@@ -1,8 +1,7 @@
 # check if postgres.type is set to external operator
-{{ $is_operator := (eq .Values.postgres.type "operator") }}
 {{ $is_external := (eq .Values.postgres.type "external") }}
-{{ if not (or $is_operator  $is_external) }}
-  {{- fail "Deploymnent FAILED, unknown postgres.type defined, please set postgres.type to operator or external ..." }}
+{{ if not ($is_external) }}
+  {{- fail "Deploymnent FAILED, unknown postgres.type defined, please set postgres.type to external ..." }}
 {{ end }}
 
 apiVersion: batch/v1
@@ -21,6 +20,13 @@ spec:
       imagePullSecrets:
       - name: {{ .Values.geonode.imagePullSecret }}
 {{ end }}
+
+      # Dynamic cluster taint override integration
+      {{- with .Values.geonode.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
       restartPolicy: OnFailure
       containers:
       - name: {{ .Values.geonode.container_name }}-statics-job

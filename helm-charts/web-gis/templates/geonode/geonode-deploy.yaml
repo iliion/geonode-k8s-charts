@@ -42,6 +42,8 @@ spec:
       - name: {{ .Values.geonode.imagePullSecret }}
 {{ end }}
 
+
+
       initContainers:
       # Wait for Postgres and rabbit
       - name: {{ .Values.geonode.init.container_name }}
@@ -59,6 +61,11 @@ spec:
         - -wait
         - tcp://{{ include "redis_host" . }}
         {{ end }}
+
+      {{- with .Values.geonode.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
 
       containers:
       # This is the django app server
@@ -327,4 +334,3 @@ spec:
         # Using an emptyDir to cache compiled statics... it will survive container crashes, but not pod restarts
         - name: cache-volume
           emptyDir: {}
-

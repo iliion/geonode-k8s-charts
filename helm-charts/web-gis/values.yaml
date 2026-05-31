@@ -4,6 +4,12 @@ global:
   # -- storage access mode used by helm dependency pvc
   accessMode: ReadWriteMany
 
+  tolerations:
+    - key: "cluster"
+      operator: "Equal"
+      value: "rheticuset_cluster"
+      effect: "NoSchedule"
+
 # geonode configuration
 geonode:
   version: 5.0.1
@@ -95,6 +101,12 @@ geonode:
     annotations: {}
     tlsSecret: geonode-tls-secret
 
+  tolerations:
+    - key: "cluster"
+      operator: "Equal"
+      value: "rheticuset_cluster"
+      effect: "NoSchedule"
+
   acme:
     # -- enables cert-manager to do ACME challenges (aka certificates via letsencrypt)
     enabled: False
@@ -153,6 +165,13 @@ geonode:
     cheaper_busyness_backlog_step: 2
 
   general:
+    
+    tolerations:
+    - key: "cluster"
+      operator: "Equal"
+      value: "rheticuset_cluster"
+      effect: "NoSchedule"
+
     # -- external ingress schema. If set to 'https', make sure to configure TLS either by
     # configuring tls certificate or using cert-manager. Available options: (http|https)
     externalScheme: http
@@ -309,6 +328,12 @@ geonode:
     # -- memcached lock timeout
     lock_timeout: "10"
 
+    tolerations:
+      - key: "cluster"
+        operator: "Equal"
+        value: "rheticuset_cluster"
+        effect: "NoSchedule"
+
   init:
     # -- init container name
     container_name: geonode-wait-for-db-and-rabbit
@@ -428,6 +453,12 @@ geoserver:
     failureThreshold: 3
     timeoutSeconds: 5
 
+  tolerations:
+    - key: "cluster"
+      operator: "Equal"
+      value: "rheticuset_cluster"
+      effect: "NoSchedule"
+
 geoserver_data:
   container_name: geoserver-data-dir
   image:
@@ -541,6 +572,12 @@ pycsw:
     initialDelaySeconds: 10
     timeoutSeconds: 5
     failureThreshold: 3
+
+  tolerations:
+    - key: "cluster"
+      operator: "Equal"
+      value: "rheticuset_cluster"
+      effect: "NoSchedule"
 
   init:
     container_name: pycsw-wait-for-geonode
@@ -706,12 +743,18 @@ memcached:
     requests:
       cpu: 100m
       memory: 128Mi
+      
+  tolerations:
+    - key: "cluster"
+      operator: "Equal"
+      value: "rheticuset_cluster"
+      effect: "NoSchedule"
 
 # RABBITMQ CONFIGURATION
 # https://artifacthub.io/packages/helm/cloudpirates-rabbitmq/rabbitmq
 # Activate if you are running geonode below 5.0.0
 rabbitmq:
-  enabled: false
+  enabled: true
 
   # -- rabbitmq raplica count
   persistence:
@@ -776,7 +819,11 @@ redis:
       # -- limit cpu as in resource.requests.cpu (https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/)
       cpu: "200m"
 
-
+  tolerations:
+    - key: "cluster"
+      operator: "Equal"
+      value: "rheticuset_cluster"
+      effect: "NoSchedule"
 
 # -- (map of fixture files) Fixture files which shall be made available under /usr/src/geonode/geonode/fixtures (refer to https://docs.djangoproject.com/en/4.2/howto/initial-data/)
 geonodeFixtures:

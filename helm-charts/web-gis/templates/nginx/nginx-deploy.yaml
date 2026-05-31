@@ -23,6 +23,11 @@ spec:
       - name: {{ .Values.nginx.imagePullSecret }}
 {{ end }}
 
+      {{- with .Values.nginx.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      
       containers:
       - name: {{ .Values.nginx.container_name }}
         image: "{{ .Values.nginx.image.name }}:{{ .Values.nginx.image.tag }}"

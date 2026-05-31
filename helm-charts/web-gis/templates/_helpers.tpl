@@ -20,6 +20,14 @@
 {{ .Release.Name }}-pycsw
 {{- end -}}
 
+{{- define "cnpg_pod_name" -}}
+{{ .Release.Name }}-cnpg
+{{- end -}}
+
+{{- define "webgis_pod_name" -}}
+{{ .Release.Name }}-webgis
+{{- end -}}
+
 # define secret names
 {{- define "geoserver_secret_name" -}}
 {{ .Release.Name }}-geoserver-secret

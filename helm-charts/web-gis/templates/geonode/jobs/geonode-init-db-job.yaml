@@ -21,6 +21,13 @@ spec:
       imagePullSecrets:
       - name: {{ .Values.geonode.imagePullSecret }}
 {{ end }}
+
+      # Dynamic cluster taint override integration
+      {{- with .Values.geonode.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
       restartPolicy: OnFailure
       initContainers:
       # Wait for Postgres and rabbit

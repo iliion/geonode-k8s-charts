@@ -2,13 +2,9 @@
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
-  name: {{ .Values.postgres.cnpg.clusterName }}
+  name: "{{ include "cnpg_pod_name" . }}"
   namespace: {{ .Release.Namespace }}
   labels:
-    # app.kubernetes.io/name: postgresql
-    # app.kubernetes.io/part-of: geonode-k8s
-    # app: geonode
-    # environment: production
     cluster: rheticuset_cluster
 spec:
   # Image with PostGIS
@@ -22,23 +18,24 @@ spec:
   
   postgresql:
     parameters:
-      # Memory allocation
-      max_connections: {{ .Values.postgres.cnpg.postgresql.parameters.max_connections | default "100" }}
+      # Memory allocation (Quoted where numbers might be interpreted as raw integers)
+      max_connections: {{ .Values.postgres.cnpg.postgresql.parameters.max_connections | default "100" | quote }}
       shared_buffers: {{ .Values.postgres.cnpg.postgresql.parameters.shared_buffers | default "128MB" }}
       work_mem: {{ .Values.postgres.cnpg.postgresql.parameters.work_mem | default "4MB" }}
       maintenance_work_mem: {{ .Values.postgres.cnpg.postgresql.parameters.maintenance_work_mem | default "64MB" }}
+      
       # Logging
       log_statement: {{ .Values.postgres.cnpg.postgresql.parameters.log_statement | default "mod" }}          # Log DDL and DML statements
       log_duration: {{ .Values.postgres.cnpg.postgresql.parameters.log_duration | default "on" }}            # Log statement duration
-      log_min_duration_statement: {{ .Values.postgres.cnpg.postgresql.parameters.log_min_duration_statement | default "1000" }}  # Log slow queries (>1sec)
+      log_min_duration_statement: {{ .Values.postgres.cnpg.postgresql.parameters.log_min_duration_statement | default "1000" | quote }}  # Log slow queries (>1sec)
 
       # Vacuum settings
       autovacuum: {{ .Values.postgres.cnpg.postgresql.parameters.autovacuum | default "on" }}
-      autovacuum_max_workers: {{ .Values.postgres.cnpg.postgresql.parameters.autovacuum_max_workers | default "3" }}
+      autovacuum_max_workers: {{ .Values.postgres.cnpg.postgresql.parameters.autovacuum_max_workers | default "3" | quote }}
 
       # Inject custom logging and autovacuum values passed through values.yaml
-      {{- if .Values.postgres.cnpg.postgresql }}
-      {{- toYaml .Values.postgres.cnpg.postgresql.parameters | nindent 6 }}
+      {{- if and .Values.postgres.cnpg.postgresql .Values.postgres.cnpg.postgresql.parameters }}
+        {{- toYaml .Values.postgres.cnpg.postgresql.parameters | nindent 6 }}
       {{- end }}
 
   # Storage configuration
@@ -55,19 +52,50 @@ spec:
       cpu: {{ .Values.postgres.cnpg.resources.limits.cpu }}
       memory: {{ .Values.postgres.cnpg.resources.limits.memory }}
 
-  # Affinity and tolerations
+  # Pod scheduling/placement (CNPG puts tolerations inside topology)
+  {{- with .Values.postgres.tolerations }}
   affinity:
-    tolerations: {{ toYaml .Values.global.tolerations | nindent 6 }}
-
-# Bootstrap database initialization
+    tolerations:
+      {{- toYaml . | nindent 6 }}
+  {{- end }}
+  
+  # Bootstrap database initialization
   bootstrap:
     initdb:
-      database: {{ .Values.postgres.bootstrap.initdb.database }}
-      owner: {{ .Values.postgres.bootstrap.initdb.owner }}
-      # {{- if .Values.postgres.bootstrap.initdb.postInitTemplateSQL }}
-      # postInitTemplateSQL:
-      # {{- toYaml .Values.postgres.bootstrap.initdb.postInitTemplateSQL | nindent 8 }}
-      # {{- end }}
+      database: {{ .Values.postgres.bootstrap.initdb.database | default "app" }}
+      owner: {{ .Values.postgres.bootstrap.initdb.owner | default "app" }}
+      secret:
+        name: {{ .Values.postgres.secret.existingSecretName | default "cluster-pg-app" }}
+      # Create secondary databases
+      postInitApplicationSQL:
+        - CREATE DATABASE geonode;
+        - CREATE DATABASE geodata;
+      # FIXED: Placed postInitSQL exactly where the CNPG API expects it!
+      postInitSQL:
+        - |
+          \c geonode
+          CREATE EXTENSION IF NOT EXISTS postgis;
+          CREATE EXTENSION IF NOT EXISTS postgis_topology;
+          CREATE EXTENSION IF NOT EXISTS postgres_fdw;
+        - |
+          \c geodata
+          CREATE EXTENSION IF NOT EXISTS postgis;
+          CREATE EXTENSION IF NOT EXISTS postgis_topology;
+
+  # Define and manage the secondary users natively via CNPG Role Management
+  managed:
+    roles:
+      - name: geonode
+        ensure: present
+        login: true
+        passwordSecret:
+          name: cnpg-geonode-secret
+      - name: geodata
+        ensure: present
+        login: true
+        passwordSecret:
+          name: cnpg-geonode-secret
+
 
   monitoring: 
     customQueriesConfigMap: 
