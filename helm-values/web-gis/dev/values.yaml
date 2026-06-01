@@ -68,15 +68,12 @@ postgres:
   #   geodata-password: rheticus_electric_tower/data/geodata#password
 
   external:
-    hostname: cluster-pg-rw   # The primary routing service built by CNPG
+    hostname: rhel-release-dev-cnpg-rw   # The primary routing service built by CNPG
     port: 5432
     ssl: prefer
     secret:
       existingSecretName: "cluster-pg-app"
-      # Inform GeoNode's environment mappings where to read the password keys
-      # postgres-password: rheticus_electric_tower/data/postgres#password
-      # geonode-password: rheticus_electric_tower/data/geonode#password
-      # geodata-password: rheticus_electric_tower/data/geodata#password
+      # ExternalSecret will fetch these from Vault and create the K8s secret
 
   tolerations:
     - key: "cluster"
@@ -183,17 +180,10 @@ geonode:
 
   secret:
     existingSecretName: "geonode-secret"
-    # data: 
-    #   username: rheticus_electric_tower/data/geonode#username
-    #   password: rheticus_electric_tower/data/geonode#password
-    #   email: rheticus_electric_tower/data/geonode#email
-
-    # django:
-    #   secretKey: "change-me-in-production-to-a-50-char-random-string"
-
-    # oauth2:
-    #   clientId: Jrchz2oPY3akmzndmgUTYrs9gczlgoV20YPSvqaV
-    #   clientSecret: rCnp5txobUo83EpQEblM8fVj3QT5zb5qRfxNsuPzCqZaiRyIoxM4jdgMiZKFfePBHYXCLd7B8NlkfDBY9HKeIQPcy5Cp08KQNpRHQbjpLItDHv12GvkSeXp6OxaUETv3
+    data: 
+      username: rheticus_electric_tower/data/geonode#username
+      password: rheticus_electric_tower/data/geonode#password
+      email: rheticus_electric_tower/data/geonode#email
 
   # Kubernetes Ingress (disabled - using APISIX instead)
   ingress:
@@ -237,6 +227,9 @@ geonode:
   # Node tolerations
   tolerations:
     - key: "cluster"
+      operator: "Equal"
+      value: "rheticuset_cluster"
+      effect: "NoSchedule"
       operator: "Equal"
       value: "rheticuset_cluster"
       effect: "NoSchedule"
@@ -369,7 +362,7 @@ memcached:
 # RABBITMQ (Message Broker for Async Tasks)
 # ═══════════════════════════════════════════════════════════════════════════
 rabbitmq:
-  enabled: true
+  enabled: false
   replicaCount: 1
 
   persistence:

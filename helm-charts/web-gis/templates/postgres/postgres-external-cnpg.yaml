@@ -66,21 +66,15 @@ spec:
       owner: {{ .Values.postgres.bootstrap.initdb.owner | default "app" }}
       secret:
         name: {{ .Values.postgres.secret.existingSecretName | default "cluster-pg-app" }}
-      # Create secondary databases
-      postInitApplicationSQL:
-        - CREATE DATABASE geonode;
-        - CREATE DATABASE geodata;
-      # FIXED: Placed postInitSQL exactly where the CNPG API expects it!
-      postInitSQL:
-        - |
-          \c geonode
-          CREATE EXTENSION IF NOT EXISTS postgis;
-          CREATE EXTENSION IF NOT EXISTS postgis_topology;
-          CREATE EXTENSION IF NOT EXISTS postgres_fdw;
-        - |
-          \c geodata
-          CREATE EXTENSION IF NOT EXISTS postgis;
-          CREATE EXTENSION IF NOT EXISTS postgis_topology;
+      # # Create secondary databases
+      # postInitApplicationSQL:
+      #   - CREATE DATABASE geonode;
+      #   - CREATE DATABASE geodata;
+      # # Create PostGIS extensions in template1 so all databases can use them
+      # postInitSQL:
+      #   - CREATE EXTENSION IF NOT EXISTS postgis;
+      #   - CREATE EXTENSION IF NOT EXISTS postgis_topology;
+      #   - CREATE EXTENSION IF NOT EXISTS postgres_fdw;
 
   # Define and manage the secondary users natively via CNPG Role Management
   managed:
@@ -94,7 +88,7 @@ spec:
         ensure: present
         login: true
         passwordSecret:
-          name: cnpg-geonode-secret
+          name: cnpg-geodata-secret
 
 
   monitoring: 
