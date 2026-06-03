@@ -65,7 +65,7 @@ spec:
       database: {{ .Values.postgres.bootstrap.initdb.database | default "app" }}
       owner: {{ .Values.postgres.bootstrap.initdb.owner | default "app" }}
       secret:
-        name: {{ .Values.postgres.secret.existingSecretName | default "cluster-pg-app" }}
+        name: {{ .Values.postgres.external.secret.existingSecretName | default "cluster-pg-app" }}
       # # Create secondary databases
       # postInitApplicationSQL:
       #   - CREATE DATABASE geonode;

@@ -60,8 +60,8 @@ postgres:
       database: app 
       owner: app
   
-  secret:
-    existingSecretName: "cluster-pg-app"
+  # secret:
+  #   existingSecretName: "cluster-pg-app"
   #   # Inform GeoNode's environment mappings where to read the password keys
   #   postgres-password: rheticus_electric_tower/data/postgres#password
   #   geonode-password: rheticus_electric_tower/data/geonode#password
