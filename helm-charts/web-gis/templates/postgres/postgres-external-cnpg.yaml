@@ -66,11 +66,13 @@ spec:
       owner: {{ .Values.postgres.bootstrap.initdb.owner | default "app" }}
       secret:
         name: {{ .Values.postgres.external.secret.existingSecretName | default "cluster-pg-app" }}
-      # # Create secondary databases
+      # # 1. AUTOMATICALLY CREATE THE DATABASES
       # postInitApplicationSQL:
       #   - CREATE DATABASE geonode;
       #   - CREATE DATABASE geodata;
-      # # Create PostGIS extensions in template1 so all databases can use them
+      #   - GRANT ALL PRIVILEGES ON DATABASE geonode TO app;
+      #   - GRANT ALL PRIVILEGES ON DATABASE geodata TO app;
+      # # 2. AUTOMATICALLY INITIALIZE EXTENSIONS & PERMISSIONS ON ALL DBs
       # postInitSQL:
       #   - CREATE EXTENSION IF NOT EXISTS postgis;
       #   - CREATE EXTENSION IF NOT EXISTS postgis_topology;
@@ -78,6 +80,11 @@ spec:
 
   # Define and manage the secondary users natively via CNPG Role Management
   managed:
+    # databases:
+    #   - name: geonode
+    #     owner: geonode
+    #   - name: geodata
+    #     owner: geodata
     roles:
       - name: geonode
         ensure: present

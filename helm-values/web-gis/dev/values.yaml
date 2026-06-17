@@ -26,7 +26,7 @@ postgres:
   # 1. Configuration for the Helm Chart template to build/adopt the CNPG Cluster
   cnpg:
     enabled: true
-    clusterName: cluster-pg   # Template generates: cluster-pg-app-secret
+    clusterName: cluster-pg   # Template generates: cluster-pg-app secret
     imageName: ghcr.io/cloudnative-pg/postgis:15
     instances: 3
     storage:
@@ -51,7 +51,7 @@ postgres:
   # 2. Configuration for GeoNode core components to CONNECT to that cluster
   enabled: true
   type: external
-  username: app               # Note: CNPG primary application user is 'app', not 'postgres'
+  username: app
   geonode_databasename_and_username: geonode
   geodata_databasename_and_username: geodata
   schema: public
@@ -59,31 +59,21 @@ postgres:
     initdb: 
       database: app 
       owner: app
-  
-  # secret:
-  #   existingSecretName: "cluster-pg-app"
-  #   # Inform GeoNode's environment mappings where to read the password keys
-  #   postgres-password: rheticus_electric_tower/data/postgres#password
-  #   geonode-password: rheticus_electric_tower/data/geonode#password
-  #   geodata-password: rheticus_electric_tower/data/geodata#password
 
   external:
-    hostname: rhel-release-dev-cnpg-rw   # The primary routing service built by CNPG
+    hostname: rhel-release-dev-cnpg-rw
     port: 5432
     ssl: prefer
     secret:
       existingSecretName: "cluster-pg-app"
-      # ExternalSecret will fetch these from Vault and create the K8s secret
-
+      data: 
+        username: rheticus_electric_tower/data/postgres#username
+        password: rheticus_electric_tower/data/postgres#password
   tolerations:
     - key: "cluster"
       operator: "Equal"
       value: "rheticuset_cluster"
       effect: "NoSchedule"
-
-# # IMPORTANT: postgres-operator is NOT used. We use CNPG instead.
-# postgres-operator:
-#   enabled: false
 
 # ═══════════════════════════════════════════════════════════════════════════
 # GEONODE DJANGO APPLICATION
@@ -140,15 +130,15 @@ geonode:
       SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
       # ─ CSRF Configuration ─
-      # Whitelist the external domain for CSRF validation
       CSRF_TRUSTED_ORIGINS = ['https://relect.planetek.it', 'http://localhost:8000']
-      ALLOWED_HOSTS = [
-          'relect.planetek.it',
-          'localhost',
-          '127.0.0.1',
-          'geonode-geonode',       # Internal K8s DNS
-          'geonode-nginx',         # Internal K8s DNS
-      ]
+      ALLOWED_HOSTS = ['*']
+      # ALLOWED_HOSTS = [
+      #     'relect.planetek.it',
+      #     'localhost',
+      #     '127.0.0.1',
+      #     'rhel-release-dev-nginx', 
+      #     'rhel-release-dev-geonode',
+      # ]
 
       # ─ Cookie Configuration ─
       # Allow cookies across subdomains (future multi-tenant setup)
@@ -179,10 +169,11 @@ geonode:
       document_size: 60               # MB
 
   secret:
-    existingSecretName: "geonode-secret"
+    existingSecretName: "cnpg-geonode-secret"
     data: 
       username: rheticus_electric_tower/data/geonode#username
       password: rheticus_electric_tower/data/geonode#password
+      geonode-password: rheticus_electric_tower/data/geonode#password
       email: rheticus_electric_tower/data/geonode#email
 
   # Kubernetes Ingress (disabled - using APISIX instead)
@@ -255,7 +246,7 @@ geoserver:
       memory: 3Gi
 
   secret: 
-    existingSecretName: "geoserver-secret"
+    existingSecretName: "cnpg-geoserver-secret"
     data: 
       GEOSERVER_ADMIN_USER: rheticus_electric_tower/data/geoserver#GEOSERVER_ADMIN_USER
       GEOSERVER_ADMIN_PASSWORD: rheticus_electric_tower/data/geoserver#GEOSERVER_ADMIN_PASSWORD
@@ -397,6 +388,7 @@ extraDeploy:
     kind: Service
     metadata:
       name: webgis
+      namespace: rheticus-electric-towers
     spec:
       selector:
         app: webgis
@@ -406,7 +398,7 @@ extraDeploy:
           name: http
       type: ClusterIP
 
-  # ─ 3. WEB-GIS DASHBOARD APP DEPLOYMENT ─
+  # ─ 2. WEB-GIS DASHBOARD APP DEPLOYMENT ─
   - apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -438,7 +430,7 @@ extraDeploy:
               effect: "NoSchedule"
           containers:
             - name: webgis
-              image: harbor.planetek.it/rheticus_electric_towers/rheticus-electric-towers-web-gis
+              image: harbor.planetek.it/rheticus_electric_towers/rheticus-electric-towers-web-gis:v1.0.1-patched
               imagePullPolicy: Always
               ports:
                 - name: http
@@ -483,17 +475,43 @@ extraDeploy:
     kind: ApisixRoute
     metadata:
       name: geonode-route-root
+      namespace: rheticus-electric-towers
     spec:
       ingressClassName: apisix
       http:
-        - name: webgis-root
+        # ── PRIORITY 2: EVALUATED FIRST (SPECIFIC CORE DATA ENGINES) ──
+        - name: geonode-backend
+          priority: 2
           match:
             hosts:
               - relect.planetek.it
             paths:
-              - "/*"
+              - "/geoserver/*"
+              - "/geoserver/**"
+              - "/api/*"
+              - "/api/**"
+              - "/static/*"
+              - "/static/**"
+              - "/uploaded/*"
+              - "/uploaded/**"
+          backends:
+            - serviceName: rhel-release-dev-nginx
+              servicePort: 80
+          plugins:
+            - name: proxy-rewrite
+              enable: true
+              config:
+                headers:
+                  X-Forwarded-Proto: "https"
+        # ── PRIORITY 1: EVALUATED SECOND (FRONTEND FALLBACK) ──
+        - name: webgis-root
+          priority: 1
+          match:
+            hosts:
+              - relect.planetek.it
+            paths:
               - "/"
-              - "/**"
+              - "/*"
           backends:
             - serviceName: webgis
               servicePort: 80
@@ -509,12 +527,14 @@ extraDeploy:
     kind: ApisixTls
     metadata:
       name: geonode-tls
+      namespace: rheticus-electric-towers
     spec:
       hosts:
         - relect.planetek.it
       ingressClassName: apisix
       secret:
         name: geonode-tls-secret
+        namespace: rheticus-electric-towers
 
 
 # ═══════════════════════════════════════════════════════════════════════════

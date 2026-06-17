@@ -109,4 +109,4 @@ spec:
           name: {{ .Release.Name }}-geoserver-printing-config-yaml
       - name: "{{ include "persistant_volume_name" . }}"
         persistentVolumeClaim:
-          claimName: pvc-geonode-geonode
+          claimName: pvc-{{ .Release.Name }}-geonode

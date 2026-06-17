@@ -81,6 +81,8 @@ require
 "{{ .Values.postgres.geonode_databasename_and_username }}.{{ include "postgres_pod_name" . }}.credentials.postgresql.acid.zalan.do"
 {{- else if and (eq .Values.postgres.type "external") (not .Values.postgres.external.secret.existingSecretName ) -}}
 "{{ .Release.Name }}-geonode-external-secrets"
+{{- else if and (eq .Values.postgres.type "external") .Values.postgres.cnpg.enabled -}}
+"cnpg-geonode-secret"
 {{- else -}}
 "{{.Values.postgres.external.secret.existingSecretName }}"
 {{- end -}}
@@ -92,6 +94,8 @@ require
 "{{ .Values.postgres.geodata_databasename_and_username }}.{{ include "postgres_pod_name" . }}.credentials.postgresql.acid.zalan.do"
 {{- else if and (eq .Values.postgres.type "external") (not .Values.postgres.external.secret.existingSecretName ) -}}
 "{{ .Release.Name }}-geodata-external-secrets"
+{{- else if and (eq .Values.postgres.type "external") .Values.postgres.cnpg.enabled -}}
+"cnpg-geodata-secret"
 {{- else if .Values.postgres.external.secret.existingSecretName -}}
 "{{.Values.postgres.external.secret.existingSecretName }}"
 {{- end -}}

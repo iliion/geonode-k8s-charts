@@ -10,6 +10,10 @@ kind: Job
 metadata:
   name: "{{ include "geonode_pod_name" . }}-init-db-job"
   namespace: {{ .Release.Namespace }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+    "helm.sh/hook-weight": "5"
 spec:
   backoffLimit: 3
   template:
@@ -17,10 +21,10 @@ spec:
       labels:
         org.geonode.instance: "{{ include "geonode_pod_name" . }}-init-db-job"
     spec:
-{{- if not (empty .Values.geonode.imagePullSecret) }}
+      {{- if not (empty .Values.geonode.imagePullSecret) }}
       imagePullSecrets:
       - name: {{ .Values.geonode.imagePullSecret }}
-{{ end }}
+      {{ end }}
 
       # Dynamic cluster taint override integration
       {{- with .Values.geonode.tolerations }}

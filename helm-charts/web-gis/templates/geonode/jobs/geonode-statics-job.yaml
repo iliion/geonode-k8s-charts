@@ -9,6 +9,9 @@ kind: Job
 metadata:
   name: "{{ include "geonode_pod_name" . }}-statics-job"
   namespace: {{ .Release.Namespace }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
 spec:
   backoffLimit: 3
   template:

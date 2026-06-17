@@ -21,10 +21,10 @@ spec:
     spec:
       terminationGracePeriodSeconds: 3
 
-{{- if not (empty .Values.pycsw.imagePullSecret) }}
+      {{- if not (empty .Values.pycsw.imagePullSecret) }}
       imagePullSecrets:
       - name: {{ .Values.pycsw.imagePullSecret }}
-{{ end }}
+      {{ end }}
 
       {{- with .Values.postgres.tolerations }}
       tolerations:
@@ -32,7 +32,7 @@ spec:
       {{- end }}
 
       initContainers:
-      # Wait for GeoNode to be up and running, else there can be a race conddition where pycsw creates the database table,
+      # Wait for GeoNode to be up and running, else there can be a race condition where pycsw creates the database table,
       # and lets crash init process of geonode
       - name: {{ .Values.pycsw.init.container_name }}
         image: "{{ .Values.pycsw.init.image.name }}:{{ .Values.pycsw.init.image.tag }}"
