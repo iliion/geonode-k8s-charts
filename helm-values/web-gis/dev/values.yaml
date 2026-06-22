@@ -61,7 +61,7 @@ postgres:
       owner: app
 
   external:
-    hostname: rhel-release-dev-cnpg-rw
+    hostname: rhet-dev-release-cnpg-rw
     port: 5432
     ssl: prefer
     secret:
@@ -136,8 +136,8 @@ geonode:
       #     'relect.planetek.it',
       #     'localhost',
       #     '127.0.0.1',
-      #     'rhel-release-dev-nginx', 
-      #     'rhel-release-dev-geonode',
+      #     'rhet-dev-release-nginx', 
+      #     'rhet-dev-release-geonode',
       # ]
 
       # ─ Cookie Configuration ─
@@ -495,7 +495,7 @@ extraDeploy:
               - "/uploaded/*"
               - "/uploaded/**"
           backends:
-            - serviceName: rhel-release-dev-nginx
+            - serviceName: rhet-dev-release-nginx
               servicePort: 80
           plugins:
             - name: proxy-rewrite
@@ -503,6 +503,7 @@ extraDeploy:
               config:
                 headers:
                   X-Forwarded-Proto: "https"
+                  X-Forwarded-Host: "relect.planetek.it"
         # ── PRIORITY 1: EVALUATED SECOND (FRONTEND FALLBACK) ──
         - name: webgis-root
           priority: 1
@@ -521,6 +522,7 @@ extraDeploy:
               config:
                 headers:
                   X-Forwarded-Proto: "https"
+                  X-Forwarded-Host: "relect.planetek.it"
 
   # ─ 4. APISIX TLS RULES ─
   - apiVersion: apisix.apache.org/v2
