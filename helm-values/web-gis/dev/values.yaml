@@ -490,6 +490,8 @@ extraDeploy:
               - "/geoserver/**"
               - "/api/*"
               - "/api/**"
+              - "/account/*"
+              - "/account/**"
               - "/static/*"
               - "/static/**"
               - "/uploaded/*"
